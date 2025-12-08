@@ -1,0 +1,15 @@
+# configs/experiment/dummy.yaml
+
+method:
+  name: dummy
+
+modelpool:
+  type: dummy
+  models:
+    - name: m1
+    - name: m2
+  
+taskpool:
+  type: dummy
+  tasks:
+    - name: dummy_task
