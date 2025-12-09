@@ -7,9 +7,10 @@ modelpool:
   type: dummy
   models:
     - name: m1
-    - name: m2
   
 taskpool:
-  type: dummy
-  tasks:
-    - name: dummy_task
+  type: simple_classification
+  dataset: mnist
+  split: test
+  batch_size: 64
+  num_workers: 4
