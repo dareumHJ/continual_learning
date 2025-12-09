@@ -1,6 +1,7 @@
 # datasets/image_classification.py
 
-from typing import Tuple
+from typing import Iterator, Tuple
+
 from pathlib import Path
 
 import torch

@@ -4,9 +4,9 @@ import argparse
 import yaml
 from pathlib import Path
 
-from methods import load_method
-from models import load_model_pool
-from task_pool import load_task_pool
+from agents import load_agent
+from models import create_model
+from datasets import create_stream
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -34,15 +34,15 @@ def main():
     with open(cfg_path, "r") as f:
         cfg = yaml.safe_load(f)
     
-    method_cfg = cfg["method"]
-    modelpool_cfg = cfg["modelpool"]
-    taskpool_cfg = cfg["taskpool"] 
+    agent_cfg = cfg["agent"]
+    model_cfg = cfg["model"]
+    data_cfg = cfg["data"]
     
-    method = load_method(method_cfg)
-    model_pool = load_model_pool(modelpool_cfg)
-    task_pool = load_task_pool(taskpool_cfg)
+    model = create_model(model_cfg)
+    stream = create_stream(data_cfg)
+    agent = load_agent(agent_cfg, model=model, stream=stream)
     
-    report = method.run(model_pool, task_pool)
+    report = agent.run()
     
     if args.output is not None:
         out_path = Path(args.output)

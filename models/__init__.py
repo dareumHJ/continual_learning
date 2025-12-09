@@ -1,10 +1,19 @@
 # models/__init__.py
 
-from .model_pool import BaseModelPool
+from .backbones import CLIPVisionClassifier
 
-def load_model_pool(cfg):
-    # 지금은 타입 하나만 지원하는 더미
-    pool = BaseModelPool(cfg)
-    # 나중에 여기서 실제 CLIP 모델들을 로드해서 pool.models에 추가!
-    pool.models = [object(), object()] # 더미 2개
-    return pool
+def create_model(cfg):
+    """
+    cfg 예시:
+    model:
+      type: clip_classifier
+      pretrained_model_name: openai/clip-vit-base-patch32
+      num_classes: 10
+    """
+    mtype = cfg.get("type", "clip_classifier")
+    if mtype == "clip_classifier":
+        name = cfg.get("pretrained_model_name", "openai/clip-vit-base-patch32")
+        num_classes = cfg.get("num_classes", 10)
+        return CLIPVisionClassifier(pretrained_model_name=name, num_classes=num_classes)
+    else:
+        raise ValueError(f"Unknown model type: {mtype}")

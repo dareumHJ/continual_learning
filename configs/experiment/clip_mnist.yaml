@@ -1,0 +1,16 @@
+# configs/experiment/clip_mnist.yaml
+
+agent:
+  name: dummy
+
+model:
+  type: clip_classifier
+  pretrained_model_name: openai/clip-vit-base-patch32
+  num_classes: 10
+
+data:
+  scenario: single_task
+  dataset: mnist
+  split: test
+  batch_size: 64
+  num_workers: 4
