@@ -19,3 +19,4 @@ def load_agent(cfg, model, stream) -> BaseAgent:
     return cls(cfg, model=model, stream=stream)
 
 from .dummy import DummyAgent
+from .eval_agent import EvalAgent

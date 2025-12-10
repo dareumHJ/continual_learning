@@ -1,7 +1,8 @@
 # configs/experiment/clip_mnist.yaml
 
 agent:
-  name: dummy
+  name: eval_agent
+  device: cuda
 
 model:
   type: clip_classifier
