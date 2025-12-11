@@ -11,16 +11,31 @@ from torchvision import datasets, transforms
 _DATA_ROOT = Path("./data") # config에서 불러오기로 대체 가능
 
 def _mnist_transforms():
-    return transforms.Compose(
-        [
-            transforms.ToTensor(),
-            # 나중에 모델에 맞게 normalization 수정 가능
-        ]
-    )
+    return transforms.Compose([transforms.ToTensor()])
 
 def _get_mnist(split:str):
     train = split == "train"
     dataset = datasets.MNIST(
+        root = _DATA_ROOT,
+        train = train,
+        download = True,
+        transform = _mnist_transforms(),
+    )
+    return dataset
+
+def _get_fashion_mnist(split:str):
+    train = split == "train"
+    dataset = datasets.FashionMNIST(
+        root = _DATA_ROOT,
+        train = train,
+        download = True,
+        transform = _mnist_transforms(),
+    )
+    return dataset
+    
+def _get_kmnist(split:str):
+    train = split == "train"
+    dataset = datasets.KMNIST(
         root = _DATA_ROOT,
         train = train,
         download = True,
@@ -46,6 +61,12 @@ def get_image_classification_dataloader(
     
     if name == "mnist":
         dataset = _get_mnist(split)
+        num_classes = 10
+    elif name == "fashionmnist":
+        dataset = _get_fashion_mnist(split)
+        num_classes = 10
+    elif name == "kmnist":
+        dataset = _get_kmnist(split)
         num_classes = 10
     else:
         raise ValueError(f"Unknown image classification dataset: {name}")

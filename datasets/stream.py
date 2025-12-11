@@ -30,5 +30,21 @@ def create_stream(cfg) -> Iterator[Tuple[str, object]]:
 
         # single task stream에서는 한 번만 yield
         yield name, loader
+        
+    elif scenario == "task_incremental":
+        tasks_cfg = cfg.get("tasks", [])
+        batch_size = cfg.get("batch_size", 64)
+        num_workers = cfg.get("num_workers", 4)
+        
+        for task in tasks_cfg:
+            name = task.get("dataset", "mnist")
+            split = task.get("split", "test")
+            loader, _ = get_image_classification_dataloader(
+                name=name,
+                split=split,
+                batch_size=batch_size,
+                num_workers=num_workers,
+            )
+            yield name, loader
     else:
         raise ValueError(f"Unknown scenario: {scenario}")

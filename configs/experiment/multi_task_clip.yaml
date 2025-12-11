@@ -1,0 +1,20 @@
+agent:
+  name: eval_agent
+  device: cuda
+
+model:
+  type: clip_classifier
+  pretrained_model_name: openai/clip-vit-base-patch32
+  num_classes: 10
+
+data:
+  scenario: task_incremental
+  tasks:
+    - name: mnist
+      split: test
+    - name: fashionmnist
+      split: test
+    - name: kmnist
+      split: test
+  batch_size: 64
+  num_workers: 4
