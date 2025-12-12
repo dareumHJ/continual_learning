@@ -7,6 +7,7 @@ from pathlib import Path
 from agents import load_agent
 from models import create_model
 from datasets import create_stream, create_test_stream
+from utils.cl_metrics import acc_from_matrix, bwt_from_matrix
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -46,6 +47,14 @@ def main():
     
     agent = load_agent(agent_cfg, model=model, stream=train_stream, test_stream=test_stream)
     report = agent.run()
+    
+    if "acc_matrix" in report:
+        acc = acc_from_matrix(report["acc_matrix"])
+        bwt = bwt_from_matrix(
+            report["acc_matrix"],
+            task_order=[t["name"] for t in data_cfg["tasks"]],
+        )
+        print(f"[CL Metrics] ACC = {acc:.4f}, BWT = {bwt:.4f}")
     
     if args.output is not None:
         out_path = Path(args.output)
