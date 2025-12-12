@@ -20,3 +20,4 @@ def load_agent(cfg, model, stream) -> BaseAgent:
 
 from .dummy import DummyAgent
 from .eval_agent import EvalAgent
+from .naive_finetune import NaiveFinetuneAgent
