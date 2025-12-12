@@ -1,0 +1,98 @@
+agent:
+  name: cl_eval
+  device: cuda
+  lr: 0.00005
+  epochs: 1
+
+model:
+  type: clip_classifier
+  pretrained_model_name: openai/clip-vit-base-patch32
+  num_classes: 10
+
+data:
+  scenario: task_incremental
+  tasks:
+    - name: sun397
+      split: train
+    - name: stanford-cars
+      split: train
+    - name: resisc45
+      split: train
+    - name: eurosat
+      split: train
+    - name: svhn
+      split: train
+    - name: gtsrb
+      split: train
+    - name: mnist
+      split: train
+    - name: dtd
+      split: train
+    - name: oxfordflowers102
+      split: train
+    - name: pcam
+      split: train
+    - name: fer2013
+      split: train
+    - name: oxford-iiit-pet
+      split: train
+    - name: stl10
+      split: train
+    - name: cifar100
+      split: train
+    - name: cifar10
+      split: train
+    - name: food101
+      split: train
+    - name: fashionmnist
+      split: train
+    - name: emnistletters
+      split: train
+    - name: kmnist
+      split: train
+    - name: rendered-sst2
+      split: train
+
+  test_tasks:
+    - name: sun397
+      split: test
+    - name: stanford-cars
+      split: test
+    - name: resisc45
+      split: test
+    - name: eurosat
+      split: test
+    - name: svhn
+      split: test
+    - name: gtsrb
+      split: test
+    - name: mnist
+      split: test
+    - name: dtd
+      split: test
+    - name: oxfordflowers102
+      split: test
+    - name: pcam
+      split: test
+    - name: fer2013
+      split: test
+    - name: oxford-iiit-pet
+      split: test
+    - name: stl10
+      split: test
+    - name: cifar100
+      split: test
+    - name: cifar10
+      split: test
+    - name: food101
+      split: test
+    - name: fashionmnist
+      split: test
+    - name: emnistletters
+      split: test
+    - name: kmnist
+      split: test
+    - name: rendered-sst2
+      split: test
+  batch_size: 64
+  num_workers: 4

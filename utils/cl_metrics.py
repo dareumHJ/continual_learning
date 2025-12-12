@@ -14,7 +14,7 @@ def acc_from_matrix(acc_matrix: Dict[str, Dict[str, float]]) -> float:
     return float(np.mean(last_accs))
 
 def bwt_from_matrix(
-    acc_matrix: Dict(str, Dict[str, float]),
+    acc_matrix: Dict[str, Dict[str, float]],
     task_order: List[str],
 ) -> float:
     """
