@@ -37,7 +37,7 @@ def create_stream(cfg) -> Iterator[Tuple[str, object]]:
         num_workers = cfg.get("num_workers", 4)
         
         for task in tasks_cfg:
-            name = task.get("dataset", "mnist")
+            name = task.get("name", "mnist")
             split = task.get("split", "test")
             loader, _ = get_image_classification_dataloader(
                 name=name,
@@ -48,3 +48,19 @@ def create_stream(cfg) -> Iterator[Tuple[str, object]]:
             yield name, loader
     else:
         raise ValueError(f"Unknown scenario: {scenario}")
+
+def create_test_stream(cfg) -> Iterator[Tuple[str, object]]:
+    tasks_cfg = cfg.get("test_tasks", [])
+    batch_size = cfg.get("batch_size", 64)
+    num_workers = cfg.get("num_workers", 4)
+    
+    for task in tasks_cfg:
+        name = task.get("name", "mnist")
+        split = task.get("split", "test")
+        loader, _ = get_image_classification_dataloader(
+            name=name,
+            split=split,
+            batch_size=batch_size,
+            num_workers=num_workers,
+        )
+        yield name, loader

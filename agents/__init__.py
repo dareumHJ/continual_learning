@@ -11,13 +11,14 @@ def register_agent(name):
         return cls
     return decorator
 
-def load_agent(cfg, model, stream) -> BaseAgent:
+def load_agent(cfg, model, stream, test_stream=None) -> BaseAgent:
     name = cfg["name"]
     if name not in _AGENT_REGISTRY:
         raise ValueError(f"Unknown agent: {name}")
     cls = _AGENT_REGISTRY[name]
-    return cls(cfg, model=model, stream=stream)
+    return cls(cfg, model=model, stream=stream, test_stream=test_stream)
 
 from .dummy import DummyAgent
 from .eval_agent import EvalAgent
 from .naive_finetune import NaiveFinetuneAgent
+from .cl_eval_agent import ContinualEvalAgent

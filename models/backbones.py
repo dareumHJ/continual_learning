@@ -15,7 +15,11 @@ class CLIPVisionClassifier(nn.Module):
         if images.dim() == 4 and images.shape[1] == 1:
             images = images.repeat(1, 3, 1, 1)  # Grayscale to RGB
             
-        inputs = self.processor(images=images, return_tensors="pt")
+        inputs = self.processor(
+            images=images,
+            return_tensors="pt",
+            do_rescale=False,
+        )
         pixel_values = inputs["pixel_values"].to(images.device)
         vision_outputs = self.clip.vision_model(pixel_values=pixel_values)
         pooled = vision_outputs.last_hidden_state[:, 0]

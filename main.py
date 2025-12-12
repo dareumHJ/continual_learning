@@ -6,7 +6,7 @@ from pathlib import Path
 
 from agents import load_agent
 from models import create_model
-from datasets import create_stream
+from datasets import create_stream, create_test_stream
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -39,9 +39,12 @@ def main():
     data_cfg = cfg["data"]
     
     model = create_model(model_cfg)
-    stream = create_stream(data_cfg)
-    agent = load_agent(agent_cfg, model=model, stream=stream)
+    train_stream = create_stream(data_cfg)
+    test_stream = None
+    if "test_tasks" in data_cfg:
+        test_stream = list(create_test_stream(data_cfg)) # list로 고정
     
+    agent = load_agent(agent_cfg, model=model, stream=train_stream, test_stream=test_stream)
     report = agent.run()
     
     if args.output is not None:

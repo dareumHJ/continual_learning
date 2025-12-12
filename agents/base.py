@@ -3,11 +3,11 @@
 from abc import ABC, abstractmethod
 
 class BaseAgent(ABC):
-    def __init__(self, cfg, model, stream):
+    def __init__(self, cfg, model, stream, test_stream=None):
         self.cfg = cfg
         self.model = model
         self.stream = stream
-        
+        self.test_stream = test_stream
     
     @abstractmethod
     def observe_task(self, task_name, loader):
