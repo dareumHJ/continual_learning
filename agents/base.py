@@ -10,10 +10,6 @@ class BaseAgent(ABC):
         self.test_stream = test_stream
     
     @abstractmethod
-    def observe_task(self, task_name, loader):
-        """한 태스크의 train/eval... 어떻게 구현?"""
-        pass
-    
     def run(self):
         report = {}
         for task_idx, (task_name, loader) in enumerate(self.stream):

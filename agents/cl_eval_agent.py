@@ -71,8 +71,6 @@ class ContinualEvalAgent(BaseAgent):
         
         return results
     
-    def observe_task(self, task_data):
-        pass
     
     def run(self) -> Dict[str, Any]:
         acc_matrix: Dict[str, Dict[str, float]] = {}

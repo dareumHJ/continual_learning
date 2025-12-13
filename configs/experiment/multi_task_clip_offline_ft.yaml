@@ -1,0 +1,24 @@
+agent:
+  name: offline_finetune
+  device: cuda
+  lr: 0.0001
+  epochs: 10
+  ckpt_dir: outputs/offline_ckpts/clip_mnist3
+
+model:
+  type: clip_classifier
+  pretrained_model_name: openai/clip-vit-base-patch32
+  num_classes: 10
+  freeze_backbone: false
+
+data:
+  scenario: task_incremental
+  tasks:
+    - name: mnist
+      split: train
+    - name: fashionmnist
+      split: train
+    - name: kmnist
+      split: train
+  batch_size: 64
+  num_workers: 4
