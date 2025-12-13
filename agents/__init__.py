@@ -23,3 +23,4 @@ from .eval_agent import EvalAgent
 from .naive_finetune import NaiveFinetuneAgent
 from .cl_eval_agent import ContinualEvalAgent
 from .offline_finetune import OfflineFinetuneAgent
+from .merge_eval import MergeEvalAgent

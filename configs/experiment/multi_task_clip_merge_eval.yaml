@@ -1,0 +1,32 @@
+agent:
+  name: merge_eval
+  device: cuda
+  ckpt_dir: outputs/offline_ckpts/clip_mnist3
+  merge_method: simple_average # 첫 번째 논문 baseline...
+  lr: 0.0
+  epochs: 0
+
+model:
+  type: clip_classifier
+  pretrained_model_name: openai/clip-vit-base-patch32
+  num_classes: 10
+  freeze_backbone: true # checkpoint에서 load 후 고정
+
+data:
+  scenario: task_incremental
+  tasks:
+    - name: mnist
+      split: train
+    - name: fashionmnist
+      split: train
+    - name: kmnist
+      split: train
+  test_tasks:
+    - name: mnist
+      split: test
+    - name: fashionmnist
+      split: test
+    - name: kmnist
+      split: test
+  batch_size: 64
+  num_workers: 4
