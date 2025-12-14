@@ -69,7 +69,7 @@ class OfflineFinetuneAgent(BaseAgent):
     def run(self) -> Dict[str, Any]:
         summaries: Dict[str, Any] = {}
         
-        for task_idx, (task_name, loader) in enumerate(self.stream):
+        for task_idx, (task_name, (loader, num_classes)) in enumerate(self.stream):
             print(f"[OfflineFinetune] Task {task_idx}: {task_name}")
             
             # 1) model initialization

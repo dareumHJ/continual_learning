@@ -21,12 +21,16 @@ data:
       split: train
     - name: kmnist
       split: train
+    - name: eurosat
+      split: train
   test_tasks:
     - name: mnist
       split: test
     - name: fashionmnist
       split: test
     - name: kmnist
+      split: test
+    - name: eurosat
       split: test
   batch_size: 64
   num_workers: 4

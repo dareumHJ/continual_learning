@@ -14,7 +14,21 @@ model:
 data:
   scenario: task_incremental
   tasks:
-    - name: mnist
+    # - name: mnist
+    #   split: train
+    - name: sun397
+      split: train
+    - name: stanford-cars
+      split: train
+    - name: resisc45
+      split: train
+    - name: eurosat
+      split: train
+    - name: svhn
+      split: train
+    - name: gtsrb
+      split: train
+    - name: dtd
       split: train
     - name: fashionmnist
       split: train

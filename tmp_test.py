@@ -1,4 +1,4 @@
-from datasets import get_image_classification_dataloader
+from dataset import get_image_classification_dataloader
 
 def main():
     loader, num_classes = get_image_classification_dataloader(

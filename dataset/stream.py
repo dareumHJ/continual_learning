@@ -1,7 +1,7 @@
 # datasets/stream.py
 
 from typing import Iterator, Tuple
-from datasets import get_image_classification_dataloader
+from dataset import get_image_classification_dataloader
 
 def create_stream(cfg) -> Iterator[Tuple[str, object]]:
     """
@@ -21,7 +21,7 @@ def create_stream(cfg) -> Iterator[Tuple[str, object]]:
         batch_size = cfg.get("batch_size", 64)
         num_workers = cfg.get("num_workers", 4)
 
-        loader, _ = get_image_classification_dataloader(
+        loader, num_classes = get_image_classification_dataloader(
             name=name,
             split=split,
             batch_size=batch_size,
@@ -29,7 +29,7 @@ def create_stream(cfg) -> Iterator[Tuple[str, object]]:
         )
 
         # single task stream에서는 한 번만 yield
-        yield name, loader
+        yield name, (loader, num_classes)
         
     elif scenario == "task_incremental":
         tasks_cfg = cfg.get("tasks", [])
@@ -39,13 +39,13 @@ def create_stream(cfg) -> Iterator[Tuple[str, object]]:
         for task in tasks_cfg:
             name = task.get("name", "mnist")
             split = task.get("split", "test")
-            loader, _ = get_image_classification_dataloader(
+            loader, num_classes = get_image_classification_dataloader(
                 name=name,
                 split=split,
                 batch_size=batch_size,
                 num_workers=num_workers,
             )
-            yield name, loader
+            yield name, (loader, num_classes)
     else:
         raise ValueError(f"Unknown scenario: {scenario}")
 
@@ -57,10 +57,10 @@ def create_test_stream(cfg) -> Iterator[Tuple[str, object]]:
     for task in tasks_cfg:
         name = task.get("name", "mnist")
         split = task.get("split", "test")
-        loader, _ = get_image_classification_dataloader(
+        loader, num_classes = get_image_classification_dataloader(
             name=name,
             split=split,
             batch_size=batch_size,
             num_workers=num_workers,
         )
-        yield name, loader
+        yield name, (loader, num_classes)

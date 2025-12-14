@@ -6,7 +6,7 @@ from pathlib import Path
 
 from agents import load_agent
 from models import create_model
-from datasets import create_stream, create_test_stream
+from dataset import create_stream, create_test_stream
 from utils.cl_metrics import acc_from_matrix, bwt_from_matrix
 
 def parse_args():
@@ -43,7 +43,7 @@ def main():
     train_stream = create_stream(data_cfg)
     test_stream = None
     if "test_tasks" in data_cfg:
-        test_stream = list(create_test_stream(data_cfg)) # list로 고정
+        test_stream = list(create_test_stream(data_cfg))
     
     agent = load_agent(agent_cfg, model=model, stream=train_stream, test_stream=test_stream)
     report = agent.run()
