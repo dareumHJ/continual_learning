@@ -2,15 +2,24 @@ agent:
   name: merge_eval
   device: cuda
   ckpt_dir: data/clip-vit-b32/hf_backbones
-  merge_method: simple_average # 첫 번째 논문 baseline...
-  lr: 0.0
-  epochs: 0
+  merge_method: task_arithmetic
+  base_task: mnist
+  plus_tasks:
+    - sun397
+    - stanford-cars
+    - resisc45
+    - eurosat
+    - svhn
+    - gtsrb
+    - dtd
+  minus_tasks: []
+  scaling_factor: 1.0
 
 model:
   type: clip_classifier
   pretrained_model_name: openai/clip-vit-base-patch32
   num_classes: 10
-  freeze_backbone: true # checkpoint에서 load 후 고정
+  freeze_backbone: false # checkpoint에서 load 후 고정
 
 data:
   scenario: task_incremental

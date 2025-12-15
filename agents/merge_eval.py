@@ -40,6 +40,53 @@ def _simple_average_backbones(backbones: Dict[str, dict]) -> dict:
     
     return merged
 
+def _task_arithmetic_backbones(
+    backbones: Dict[str, dict],
+    base_task: str,
+    plus_tasks: List[str],
+    minus_tasks: List[str] | None = None,
+    scaling_factor: float = 1.0,
+) -> dict:
+    """
+    Task Arithmetic:
+      W_merge = W_base + scaling_factor * (avg(W_plus) - avg(W_minus))
+      
+      - backbones: {task_name: state_dict}
+      - base_task: 기준이 되는 task name
+      - plus_tasks: 추가하고 싶은 task들
+      - minus_tasks: 빼고 싶은 task들 (없으면 None)
+      - scaling_factor: 
+    """
+    if base_task not in backbones:
+        raise ValueError(f"Base task '{base_task}' not found in backbones")
+    
+    if len(plus_tasks) == 0:
+        raise ValueError("plus_tasks must contain at least one task")
+    
+    minus_tasks = minus_tasks or []
+    
+    base_sd = backbones[base_task]
+    
+    plus_sds = [backbones[t] for t in plus_tasks]
+    minus_sds = [backbones[t] for t in minus_tasks] if minus_tasks else []\
+    
+    merged: Dict[str, torch.Tensor] = {}
+    
+    for key in base_sd.keys():
+        base_w = base_sd[key]
+        
+        plus_avg = sum(sd[key] for sd in plus_sds) / len(plus_sds)
+        
+        if minus_sds:
+            minus_avg = sum(sd[key] for sd in minus_sds) / len(minus_sds)
+            delta = plus_avg - minus_avg
+        else:
+            delta = plus_avg - base_w
+            
+        merged[key] = base_w + scaling_factor * delta
+    
+    return merged
+
 @register_agent("merge_eval")
 class MergeEvalAgent(BaseAgent):
     """
@@ -99,6 +146,20 @@ class MergeEvalAgent(BaseAgent):
         if self.merge_method == "simple_average":
             merged_sd = _simple_average_backbones(backbones)
             print("[MergeEval] Applied simple_average over backbones")
+        elif self.merge_method == "task_arithmetic":
+            base_task = self.cfg.get("base_task", "mnist")
+            plus_tasks = self.cfg.get("plus_tasks", [])
+            minus_tasks = self.cfg.get("minus_tasks", [])
+            scaling = self.cfg.get("scaling_factor", 0.3)
+            merged_sd = _task_arithmetic_backbones(
+                backbones,
+                base_task = base_task,
+                plus_tasks=plus_tasks,
+                minus_tasks=minus_tasks,
+                scaling_factor=scaling,
+                )
+            print(f"[MergeEval] Applied task arithmetic with base={base_task},"
+                  f"plus={plus_tasks}, minus={minus_tasks}, alpha={scaling}")
         else:
             raise ValueError(f"Unknown merge_method: {self.merge_method}")
         
