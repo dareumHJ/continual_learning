@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from .base import BaseAgent
 from . import register_agent
+from utils.cl_eval import evaluate_clip_zeroshot, get_zeroshot_classifier
 
 def _load_backbone_tasks(ckpt_dir: Path, task_names) -> Dict[str, dict]:
     """
@@ -108,30 +109,34 @@ class MergeEvalAgent(BaseAgent):
         
         self.test_tasks: List[Tuple[str, Any, int]] = self.test_stream
         self.model.to(self.device)
+        
+    def _get_class_names(self, task_name: str) -> List[str]:
+        dataset = self.stream.get_task_dataset(task_name, split="test")
+        if hasattr(dataset, "classes"):
+            return dataset.classes
+        elif hasattr(dataset, "dataset") and hasattr(dataset.dataset, "classes"):
+            return dataset.dataset.classes
+        else:
+            raise ValueError(f"Cannot retrieve class names for task '{task_name}'")
                 
-    @torch.no_grad()
-    def _eval_on_all_tasks(self) -> Dict[str, float]:
-        self.model.eval()
+    def _eval_on_all_tasks(self, task_dict) -> Dict[str, float]:
         results: Dict[str, float] = {}
+        full_clip_model = self.model.backbone.clip
         
         for task_name, (loader, num_classes) in self.test_tasks:
-            correct, total = 0, 0
-            for batch in loader:
-                if isinstance(batch, dict):
-                    images = batch.get("image").to(self.device)
-                    labels = batch.get("label").to(self.device)
-                else:
-                    images, labels = batch
-                    images = images.to(self.device)
-                    labels = labels.to(self.device)
-                
-                logits = self.model(images)
-                preds = logits.argmax(dim=1)
-                correct += (preds == labels).sum().item()
-                total += labels.size(0)
-            acc = correct / total if total > 0 else 0.0
+            print(f"Evaluating on task: {task_name}...")
+            
+            class_names = self._get_class_names(task_name)
+            classifier_weights = get_zeroshot_classifier(
+                full_clip_model, self.processor, class_names, self.device
+            )
+            
+            acc = evaluate_clip_zeroshot(
+                full_clip_model, classifier_weights, loader, self.device
+            )
+            
             results[task_name] = acc
-        
+            
         return results
     
     
