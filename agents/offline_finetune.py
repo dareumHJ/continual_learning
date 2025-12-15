@@ -2,6 +2,7 @@ from typing import Dict, Any
 from pathlib import Path
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
 
@@ -34,7 +35,6 @@ class OfflineFinetuneAgent(BaseAgent):
     def _reset_model_to_init(self):
         """각 task마다 동일한 초기 상태에서 학습"""
         self.model.backbone.load_state_dict(self.init_state["backbone"])
-        self.model.head.load_state_dict(self.init_state["head"])
         
     def _train_one_task(self, loader):
         optim = Adam(self.model.parameters(), lr=self.lr)
@@ -72,6 +72,11 @@ class OfflineFinetuneAgent(BaseAgent):
         for task_idx, (task_name, (loader, num_classes)) in enumerate(self.stream):
             print(f"[OfflineFinetune] Task {task_idx}: {task_name}")
             
+            in_features = self.model.head.classifier.in_features
+            
+            self.model.head.classifier= nn.Linear(in_features, num_classes).to(self.device)
+            print(f"[OfflineFinetune] Replaced head with output dim: {num_classes}")
+            
             # 1) model initialization
             self._reset_model_to_init()
             
@@ -83,18 +88,23 @@ class OfflineFinetuneAgent(BaseAgent):
             print(f"[OfflineFinetune] {task_name}: train_acc={acc:.4f}")
             
             # 4) save checkpoint
-            backbone_ckpt = self.ckpt_dir / "backbone.pt"
-            head_ckpt = self.ckpt_dir / f"head_{task_name}.pt"
+            init_backbone_ckpt = self.ckpt_dir / "backbone_init.pt"
+            if not init_backbone_ckpt.exists():
+                torch.save(self.init_state["backbone"], init_backbone_ckpt)
+                print(f"[OfflineFinetune] Saved init backbone to {init_backbone_ckpt}")
             
-            if not backbone_ckpt.exists():
-                torch.save(self.model.backbone.state_dict(), backbone_ckpt)
-                print(f"[OfflineFinetune] Saved backbone to {backbone_ckpt}")
-                
+            backbone_ckpt = self.ckpt_dir / f"{task_name}/backbone.pt"
+            head_ckpt = self.ckpt_dir / f"{task_name}/head.pt"
+            
+            torch.save(self.model.backbone.state_dict(), backbone_ckpt)
             torch.save(self.model.head.state_dict(), head_ckpt)
+                
+            print(f"[OfflineFinetune] Saved backbone for {task_name} to {backbone_ckpt}")
             print(f"[OfflineFinetune] Saved head for {task_name} to {head_ckpt}")
 
             summaries[task_name] = {
                 "train_acc": acc,
+                "init_backbone_ckpt": str(init_backbone_ckpt),
                 "backbone_ckpt": str(backbone_ckpt),
                 "head_ckpt": str(head_ckpt),
             }

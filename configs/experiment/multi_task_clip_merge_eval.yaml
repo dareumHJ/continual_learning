@@ -1,7 +1,7 @@
 agent:
   name: merge_eval
   device: cuda
-  ckpt_dir: outputs/offline_ckpts/clip_mnist3
+  ckpt_dir: data/clip-vit-b32/hf_backbones
   merge_method: simple_average # 첫 번째 논문 baseline...
   lr: 0.0
   epochs: 0
@@ -17,20 +17,36 @@ data:
   tasks:
     - name: mnist
       split: train
-    - name: fashionmnist
+    - name: sun397
       split: train
-    - name: kmnist
+    - name: stanford-cars
+      split: train
+    - name: resisc45
       split: train
     - name: eurosat
+      split: train
+    - name: svhn
+      split: train
+    - name: gtsrb
+      split: train
+    - name: dtd
       split: train
   test_tasks:
     - name: mnist
       split: test
-    - name: fashionmnist
+    - name: sun397
       split: test
-    - name: kmnist
+    - name: stanford-cars
+      split: test
+    - name: resisc45
       split: test
     - name: eurosat
+      split: test
+    - name: svhn
+      split: test
+    - name: gtsrb
+      split: test
+    - name: dtd
       split: test
   batch_size: 64
   num_workers: 4
