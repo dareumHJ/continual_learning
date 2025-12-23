@@ -3,8 +3,9 @@ agent:
   device: cuda
   ckpt_dir: data/clip-vit-b32/hf_backbones
   merge_method: task_arithmetic
-  base_task: mnist
+  base_task: pretrained
   plus_tasks:
+    - mnist
     - sun397
     - stanford-cars
     - resisc45
@@ -13,7 +14,7 @@ agent:
     - gtsrb
     - dtd
   minus_tasks: []
-  scaling_factor: 1.0
+  scaling_factor: 0.3
 
 model:
   type: clip_classifier

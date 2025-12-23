@@ -8,7 +8,9 @@ import torch
 import datasets as hf_datasets
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
-from PIL import Image
+from torchvision.transforms import InterpolationMode
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 _DATA_ROOT = Path("./data") # config에서 불러오기로 대체 가능
 
@@ -41,8 +43,13 @@ class HFDatasetWrapper(Dataset):
 def clip_image_transform():
     # CLIPProcessor가 resize/normalize 다시 해주긴 함...
     return transforms.Compose([
-        transforms.Resize((224, 224)), # for clip-vit-base-patch32!!! backbone 달라지면 수정해줘야 함
-        transforms.ToTensor(), # [0, 1] tensor, CHW
+        transforms.Resize(224, interpolation=InterpolationMode.BICUBIC), # for clip-vit-base-patch32!!! backbone 달라지면 수정해줘야 함
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.48145466, 0.4578275, 0.40821073],
+            std=[0.26862954, 0.26130258, 0.27577711]
+        )
     ])
 
 def _get_mnist(split:str):

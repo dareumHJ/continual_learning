@@ -1,14 +1,21 @@
 # agents/merge_eval
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from typing import Dict, Any, List, Tuple
 from pathlib import Path
+from transformers import CLIPModel, CLIPProcessor
 
+import copy
 import torch
 import torch.nn.functional as F
+import logging
+log = logging.getLogger(__name__)
 
 from .base import BaseAgent
 from . import register_agent
 from utils.cl_eval import evaluate_clip_zeroshot, get_zeroshot_classifier
+from utils.clip_eval import get_zeroshot_classifier, evaluate_clip_zeroshot
 
 def _load_backbone_tasks(ckpt_dir: Path, task_names) -> Dict[str, dict]:
     """
@@ -100,15 +107,30 @@ class MergeEvalAgent(BaseAgent):
     
     def __init__(self, cfg, model, stream, test_stream=None):
         super().__init__(cfg, model, stream, test_stream)
-        self.device = cfg.get("device", "cuda" if torch.cuda.is_available() else "cpu")
+        
+        self.test_stream = test_stream
+        
         self.ckpt_dir = Path(cfg.get("ckpt_dir", "data/clip-vit-b32/hf_backbones"))
+        self.base_task = cfg.get("base_task", "mnist")
+        self.plus_tasks = cfg.get("plus_tasks", [])
+        self.minus_tasks = cfg.get("minus_tasks", [])
+        self.scaling_factor = cfg.get("scaling_factor", 1.0)
         self.merge_method = cfg.get("merge_method", "simple_average")
+        
+        self.device = cfg.get("device", "cuda" if torch.cuda.is_available() else "cpu")
         
         if self.test_stream is None:
             raise ValueError("merge_eval agent requires test_stream (data.test_tasks in config).")
         
-        self.test_tasks: List[Tuple[str, Any, int]] = self.test_stream
-        self.model.to(self.device)
+        model_name = cfg.get("pretrained_model_name", "openai/clip-vit-base-patch32")
+        
+        self.clip_model = CLIPModel.from_pretrained(model_name).to(self.device)
+        self.processor = CLIPProcessor.from_pretrained(model_name)
+        
+        self.pretrained_state = {
+            k: v.cpu() for k, v in self.clip_model.state_dict().items()
+            if k.startswith("vision_model")
+        }
         
     def _get_class_names(self, task_name: str) -> List[str]:
         dataset = self.stream.get_task_dataset(task_name, split="test")
@@ -121,26 +143,135 @@ class MergeEvalAgent(BaseAgent):
                 
     def _eval_on_all_tasks(self, task_dict) -> Dict[str, float]:
         results: Dict[str, float] = {}
-        full_clip_model = self.model.backbone.clip
         
-        for task_name, (loader, num_classes) in self.test_tasks:
+        for task_name, loader in task_dict.items():
             print(f"Evaluating on task: {task_name}...")
             
-            class_names = self._get_class_names(task_name)
-            classifier_weights = get_zeroshot_classifier(
-                full_clip_model, self.processor, class_names, self.device
-            )
+            try:
+                classifier_weights = get_zeroshot_classifier(
+                    self.clip_model,
+                    self.processor,
+                    task_name,
+                    self.device
+                )
+                
+                acc = evaluate_clip_zeroshot(
+                    self.clip_model,
+                    classifier_weights,
+                    loader,
+                    self.device
+                )
+                results[task_name] = acc
             
-            acc = evaluate_clip_zeroshot(
-                full_clip_model, classifier_weights, loader, self.device
-            )
-            
-            results[task_name] = acc
+            except Exception as e:
+                print(f"Skipping eval for {task_name}: {e}")
+                results[task_name] = 0.0
             
         return results
     
+    def _get_checkpoint_path(self, task_name):
+        path = self.ckpt_dir / f"{task_name}/backbone.pt"
+        if not path.exists():
+            log.warning(f"Checkpoint not found: {path}")
+            return None
+        return path
+    
+    def _load_vision_backbone(self, task_name):
+        path = self._get_checkpoint_path(task_name)
+        if path is None:
+            return None
+        
+        try:
+            state = torch.load(path, map_location="cpu")
+            if "state_dict" in state:
+                state = state["state_dict"]
+                
+            normalized_state = {}
+            for k, v in state.items():
+                if k.startswith("vision_model."):
+                    normalized_state[k] = v
+                else:
+                    normalized_state[f"vision_model.{k}"] = v
+            
+            return normalized_state
+        
+        except Exception as e:
+            log.error(f"Failed to load {task_name}: {e}")
+            return None
+        
+    def _get_base_weights(self):
+        full_state = self.clip_model.state_dict()
+        
+        if self.base_task.lower() in ["pretrained", "none"]:
+            log.info("Base Model: Pre-trained CLIP")
+            return copy.deepcopy(full_state)
+        
+        # 특정 Task를 Base로 삼는 경우 (예: MNIST)
+        log.info(f"Base Model: {self.base_task} Checkpoint")
+        base_backbone = self._load_vision_backbone(self.base_task)
+        
+        if base_backbone is None:
+            raise ValueError(f"Could not load base task: {self.base_task}")
+            
+        # Full State에 Backbone만 덮어쓰기
+        base_state = copy.deepcopy(full_state)
+        for k, v in base_backbone.items():
+            if k in base_state:
+                base_state[k] = v.to(self.device)
+                
+        return base_state
+    
+    def _get_task_vector(self, task_name):
+        """
+        Task Vector = Theta_ft(task) - Theta_pretrained
+        """
+        ft_state = self._load_vision_backbone(task_name)
+        if ft_state is None:
+            return None
+            
+        vector = {}
+        for k, pre_v in self.pretrained_state.items():
+            if k in ft_state:
+                ft_v = ft_state[k]
+                if pre_v.shape == ft_v.shape:
+                    vector[k] = ft_v - pre_v
+                    
+        return vector
+    
+    def _apply_vector(self, target_state, vector, sign=1.0):
+        """
+        Target += sign * scaling * vector
+        """
+        with torch.no_grad():
+            for k, v in vector.items():
+                if k in target_state:
+                    # target_state는 GPU에 있을 수 있으므로 device 맞춤
+                    diff = v.to(target_state[k].device)
+                    target_state[k] += sign * self.scaling_factor * diff
     
     def run(self) -> Dict[str, Any]:
+        log.info(f"Starting Merge: Base='{self.base_task}', + {self.scaling_factor} * (Plus - Minus)")
+        
+        final_state = self._get_base_weights()
+        
+        for task_name in self.plus_tasks:
+            log.info(f"Adding Task Vector: {task_name}")
+            vector = self._get_task_vector(task_name)
+            if vector:
+                self._apply_vector(final_state, vector, sign=1.0)
+                
+        for task_name in self.minus_tasks:
+            log.info(f"Subtracting Task Vector: {task_name}")
+            vector = self._get_task_vector(task_name)
+            if vector:
+                self._apply_vector(final_state, vector, sign=-1.0)
+        
+        self.clip_model.load_state_dict(final_state, strict=False)
+        log.info("mODEL merging complete.")
+        
+        task_dict = {name: loader for name, (loader, _) in self.test_stream}
+        return self._eval_on_all_tasks(task_dict)
+        
         # 1) config에서 평가할 task 목록 추출 (test_tasks 기준)
         task_names = [t[0] for t in self.test_tasks] # (task_name, loader, num_classes)
         
@@ -179,7 +310,8 @@ class MergeEvalAgent(BaseAgent):
         self.model.backbone.clip.vision_model.load_state_dict(new_merged_sd)
         
         # 4) test_tasks 평가
-        accs = self._eval_on_all_tasks()
+        task_dict = {name: loader for name, (loader, _) in self.test_tasks}
+        accs = self._eval_on_all_tasks(task_dict)
         print(f"[MergeEval] Accs with merged backbones: {accs}")
         
         return {"merged_accs": accs}
