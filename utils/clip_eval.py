@@ -2,6 +2,7 @@
 import torch
 import importlib
 import logging
+from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -84,11 +85,12 @@ def get_zeroshot_classifier(model, processor, task_name, device):
 
 def evaluate_clip_zeroshot(model, classifier_weights, loader, device):
     model.eval()
-    correct = 0; total = 0
+    correct = 0
+    total = 0
     logit_scale = model.logit_scale.exp()
     
     with torch.no_grad():
-        for batch in loader:
+        for batch in tqdm(loader, desc="Inference", leave=False):
             if isinstance(batch, dict):
                 images, labels = batch['image'], batch['label']
             else:
